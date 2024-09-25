@@ -2,9 +2,9 @@ pipeline {
     agent any
 
     environment {
-        AWS_DEFAULT_REGION = 'us-east-1' // Your AWS region
-        AWS_ACCOUNT_ID = '955708261042' // Your AWS account ID
-        ECR_REPO_NAME = 'project_online' // Your ECR repo name (change if necessary)
+        AWS_DEFAULT_REGION = 'eu-north-1' // Your updated AWS region
+        AWS_ACCOUNT_ID = '381491849010' // Your updated AWS account ID
+        ECR_REPO_NAME = 'tas2' // Updated ECR repo name
         IMAGE_TAG = "${env.BUILD_ID}"
         LATEST_TAG = 'latest' // Tag for the latest image
     }
