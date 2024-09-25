@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:latest
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: all_tables
+      TZ: UTC
+    ports:
+      - "3306:3306"
+    networks:
+      - traefikNetwork  # Added network
+
+  mysql-exporter:
+    image: prom/mysqld-exporter
+    container_name: mysql-exporter
+    environment:
+      DATA_SOURCE_NAME: "root:${DB_PASSWORD}@tcp(mysql:3306)/"
+    ports:
+      - "9104:9104"  # Default port for MySQL exporter metrics
+    networks:
+      - traefikNetwork  # Added network
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+    ports:
+      - "8081:80"  # Access phpMyAdmin on http://<your-server-ip>:8081
+    networks:
+      - traefikNetwork  # Added network
+
+  frontend:
+    build: ./frontend_code
+    image: docker-frontend:latest
+    container_name: frontend
+    ports:
+      - "3001:3000"
+    depends_on:
+      - backend
+    networks:
+      - traefikNetwork  # Added network
+
+  backend:
+    build: ./backend_code
+    image: docker-backend:latest
+    container_name: backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    depends_on:
+      - mysql
+    networks:
+      - traefikNetwork  # Added network
+
+  prometheus:
+    image: prom/prometheus
+    container_name: prometheus
+    ports:
+      - "9091:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    networks:
+      - traefikNetwork  # Added network
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - traefikNetwork  # Added network
+
+networks:
+  traefikNetwork:
+    driver: bridge
+

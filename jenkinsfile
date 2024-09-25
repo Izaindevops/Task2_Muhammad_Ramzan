@@ -1,0 +1,52 @@
+pipeline {
+    agent any
+
+    environment {
+        AWS_DEFAULT_REGION = 'us-east-1' // Your AWS region
+        AWS_ACCOUNT_ID = '955708261042' // Your AWS account ID
+        ECR_REPO_NAME = 'project_online' // Your ECR repo name (you may want to change this if needed)
+        IMAGE_TAG = "${env.BUILD_ID}"
+        LATEST_TAG = 'latest' // Tag for the latest image
+    }
+
+    stages {
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/Izaindevops/Task2_Muhammad_Ramzan.git', // Your new GitHub repo link
+                    credentialsId: 'github-credentials-id'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    dockerImage = docker.build("${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${ECR_REPO_NAME}:${IMAGE_TAG}")
+                }
+            }
+        }
+
+        stage('Push Docker Image to ECR') {
+            steps {
+                script {
+                    withAWS(credentials: 'aws-credentials-id', region: "${AWS_DEFAULT_REGION}") {
+                        sh "aws ecr get-login-password --region ${AWS_DEFAULT_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com"
+                        sh "docker tag ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${ECR_REPO_NAME}:${IMAGE_TAG} ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${ECR_REPO_NAME}:${LATEST_TAG}"
+                        sh "docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${ECR_REPO_NAME}:${IMAGE_TAG}"
+                        sh "docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${ECR_REPO_NAME}:${LATEST_TAG}"
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Image successfully pushed to ECR!'
+        }
+        failure {
+            echo 'Failed to push the image to ECR.'
+        }
+    }
+}
+
